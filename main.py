@@ -6,20 +6,13 @@ from datetime import datetime
 from tkcalendar import DateEntry
 from babel.numbers import format_decimal
 
-file_name = "resign_date"
+file_name = "data"
 
 def init_select_frame(root):
     global cal, hour_input, minutes_input, start_button, stop_button
-    
-    current_date = datetime.now()
-    
+        
     select_frame = tk.Frame(root)
-    cal = DateEntry(select_frame, 
-            selectmode = 'day', 
-            year = current_date.year, 
-            month = current_date.month,
-            day = current_date.day,
-            width=30)
+    cal = DateEntry(select_frame, selectmode = 'day', width=30, date_pattern="yyyy/mm/dd")
     time_label = tk.Label(select_frame, text="時間:")
     hour_input = tk.Entry(select_frame, width=5)
     split_label = tk.Label(select_frame, text=":")
@@ -28,7 +21,7 @@ def init_select_frame(root):
     start_button = tk.Button(select_frame, text="開始倒數", width=12, command=set_target_date)
     stop_button = tk.Button(select_frame, text="停止倒數", width=12, command=stop_countdown, state=tk.DISABLED)
  
-    select_frame.pack(pady=25)
+    select_frame.pack()
     cal.grid(row=0, columnspan=5, padx=10, pady=10, sticky='w')
     time_label.grid(row=1, column=0, padx=10)
     hour_input.grid(row=1, column=1, padx=10)
@@ -41,8 +34,8 @@ def init_select_frame(root):
 def init_countdown_frame(root):
     global target_time_label, countdown_label
     countdown_frame = tk.Frame(root)
-    target_time_label = tk.Label(countdown_frame, text="X職時間:")
-    countdown_label = tk.Label(countdown_frame, text="剩餘時間:")
+    target_time_label = tk.Label(countdown_frame, text="X職時間:未設定")
+    countdown_label = tk.Label(countdown_frame, text="剩餘時間:00天00小時00分00秒")
     
     countdown_frame.pack()
     target_time_label.grid(row= 0)
@@ -56,6 +49,7 @@ def get_target_date():
             target_datetime = datetime.strptime(target_date_str, "%Y-%m-%d %H:%M:%S")
         hour_input.insert(0,target_datetime.hour)
         minutes_input.insert(0,target_datetime.minute)
+        cal.set_date(target_datetime)
         return target_datetime
     else:
         return None    
@@ -66,7 +60,6 @@ def set_target_date():
         target_date_str = cal.get_date().strftime("%Y-%m-%d")+ " " + hour_input.get() + ":" + minutes_input.get() + ":00" 
         target_datetime = datetime.strptime(target_date_str, "%Y-%m-%d %H:%M:%S")
         if target_datetime > datetime.now():
-            target_time_label.config(text="目標時間:"+target_date_str)
             with open(file_name, "w") as file:
                 file.write(target_date_str)
             start_countdown()
@@ -78,8 +71,12 @@ def set_target_date():
 def start_countdown():
     global is_start_countdown
     set_notice("開始計時!")
+    target_time_label.config(text="X職時間:"+target_datetime.strftime("%Y-%m-%d %H:%M:%S"))
     start_button.config(state=tk.DISABLED)
     stop_button.config(state=tk.NORMAL)
+    cal.config(state=tk.DISABLED)
+    hour_input.config(state=tk.DISABLED)
+    minutes_input.config(state=tk.DISABLED)
     is_start_countdown = True
     thread = threading.Thread(target=countdown_tread)
     thread.daemon = True
@@ -91,6 +88,11 @@ def stop_countdown():
     set_notice("暫停計時!")
     start_button.config(state=tk.NORMAL)
     stop_button.config(state=tk.DISABLED)
+    cal.config(state=tk.NORMAL)
+    hour_input.config(state=tk.NORMAL)
+    minutes_input.config(state=tk.NORMAL)
+    target_time_label.config(text="X職時間:未設定")
+    countdown_label.config(text="剩餘時間:00天00小時00分00秒")
 
 def countdown_tread():
     while is_start_countdown:
@@ -103,7 +105,7 @@ def countdown_tread():
         hours, remainder = divmod(time_remaining.seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         
-        countdown_text = f"{days}天{hours}小時{minutes}分{seconds}秒"
+        countdown_text = f"{days:02d}天{hours:02d}小時{minutes:02d}分{seconds:02d}秒"
         countdown_label.config(text="剩餘時間:" + countdown_text)
         time.sleep(1)
 
@@ -122,11 +124,11 @@ def main():
     is_start_countdown = False
     root = tk.Tk()
     root.title('X職倒數')
-    root.geometry('400x300')
+    root.geometry('250x250')
     root.resizable(1, 1)
     
     notice_label = tk.Label(root)
-    notice_label.pack()
+    notice_label.pack(pady=5)
     init_select_frame(root)
     init_countdown_frame(root)
 
