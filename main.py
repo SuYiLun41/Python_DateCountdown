@@ -9,9 +9,11 @@ from babel.numbers import format_decimal
 file_name = "data"
 
 def init_select_frame(root):
-    global cal, hour_input, minutes_input, start_button, stop_button
+    global cal, title_input,hour_input, minutes_input, start_button, stop_button
         
     select_frame = tk.Frame(root)
+    title_label = tk.Label(select_frame, text="標題:")
+    title_input = tk.Entry(select_frame)
     cal = DateEntry(select_frame, selectmode = 'day', width=30, date_pattern="yyyy/mm/dd")
     time_label = tk.Label(select_frame, text="時間:")
     hour_input = tk.Entry(select_frame, width=5)
@@ -22,11 +24,13 @@ def init_select_frame(root):
     stop_button = tk.Button(select_frame, text="停止倒數", width=12, command=stop_countdown, state=tk.DISABLED)
  
     select_frame.pack()
-    cal.grid(row=0, columnspan=5, padx=10, pady=10, sticky='w')
-    time_label.grid(row=1, column=0, padx=10)
-    hour_input.grid(row=1, column=1, padx=10)
-    split_label.grid(row=1, column=2)
-    minutes_input.grid(row=1, column=3, padx=10)
+    title_label.grid(row=0, column=0)
+    title_input.grid(row=0, column=1, columnspan=4)
+    cal.grid(row=1, columnspan=5, padx=10, pady=10, sticky='w')
+    time_label.grid(row=2, column=0, padx=10)
+    hour_input.grid(row=2, column=1, padx=10)
+    split_label.grid(row=2, column=2)
+    minutes_input.grid(row=2, column=3, padx=10)
     start_button.grid(row=3,column=0,columnspan=2, padx=10)
     stop_button.grid(row=3,column=3,columnspan=2, padx=10)
     return select_frame
@@ -34,7 +38,7 @@ def init_select_frame(root):
 def init_countdown_frame(root):
     global target_time_label, countdown_label
     countdown_frame = tk.Frame(root)
-    target_time_label = tk.Label(countdown_frame, text="X職時間:未設定")
+    target_time_label = tk.Label(countdown_frame, text="目標時間:未設定")
     countdown_label = tk.Label(countdown_frame, text="剩餘時間:00天00小時00分00秒")
     
     countdown_frame.pack()
@@ -45,8 +49,16 @@ def get_target_date():
     global target_datetime
     if os.path.exists(file_name):
         with open(file_name, "r") as file:
-            target_date_str = file.read()
+            lines= file.readlines()
+            target_date_str = lines[0].strip()
+            if 1 in range(len(lines)):
+                title_str = lines[1]
+            else:
+                title_str = '倒數計時小工具'
             target_datetime = datetime.strptime(target_date_str, "%Y-%m-%d %H:%M:%S")
+        root.title(title_str)
+        title_input.insert(0,title_str)
+        title_input.config(state=tk.DISABLED)
         hour_input.insert(0,target_datetime.hour)
         minutes_input.insert(0,target_datetime.minute)
         cal.set_date(target_datetime)
@@ -57,11 +69,14 @@ def get_target_date():
 def set_target_date():
     global target_datetime
     try:
-        target_date_str = cal.get_date().strftime("%Y-%m-%d")+ " " + hour_input.get() + ":" + minutes_input.get() + ":00" 
-        target_datetime = datetime.strptime(target_date_str, "%Y-%m-%d %H:%M:%S")
+        text_string = cal.get_date().strftime("%Y-%m-%d")+ " " + hour_input.get() + ":" + minutes_input.get() + ":00" 
+        target_datetime = datetime.strptime(text_string, "%Y-%m-%d %H:%M:%S")
+        text_string = text_string + "\n" + title_input.get()
         if target_datetime > datetime.now():
             with open(file_name, "w") as file:
-                file.write(target_date_str)
+                file.write(text_string)
+            root.title(title_input.get())
+            title_input.config(state=tk.DISABLED)
             start_countdown()
         else:
             set_notice("時間不應該小於當前時間!")
@@ -71,7 +86,7 @@ def set_target_date():
 def start_countdown():
     global is_start_countdown
     set_notice("開始計時!")
-    target_time_label.config(text="X職時間:"+target_datetime.strftime("%Y-%m-%d %H:%M:%S"))
+    target_time_label.config(text="目標時間:"+target_datetime.strftime("%Y-%m-%d %H:%M:%S"))
     start_button.config(state=tk.DISABLED)
     stop_button.config(state=tk.NORMAL)
     cal.config(state=tk.DISABLED)
@@ -86,12 +101,13 @@ def stop_countdown():
     global is_start_countdown
     is_start_countdown = False
     set_notice("暫停計時!")
+    title_input.config(state=tk.NORMAL)
     start_button.config(state=tk.NORMAL)
     stop_button.config(state=tk.DISABLED)
     cal.config(state=tk.NORMAL)
     hour_input.config(state=tk.NORMAL)
     minutes_input.config(state=tk.NORMAL)
-    target_time_label.config(text="X職時間:未設定")
+    target_time_label.config(text="目標時間:未設定")
     countdown_label.config(text="剩餘時間:00天00小時00分00秒")
 
 def countdown_tread():
@@ -120,10 +136,10 @@ def reset_notice():
     notice_label.config(text="",fg='#000000')
 
 def main():
-    global notice_label, is_start_countdown
+    global root, notice_label, is_start_countdown
     is_start_countdown = False
     root = tk.Tk()
-    root.title('X職倒數')
+    root.title('倒數計時小工具')
     root.geometry('250x250')
     root.resizable(1, 1)
     
