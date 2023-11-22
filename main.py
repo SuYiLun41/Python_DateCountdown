@@ -48,7 +48,7 @@ def init_countdown_frame(root):
 def get_target_date():
     global target_datetime
     if os.path.exists(file_name):
-        with open(file_name, "r") as file:
+        with open(file_name, "r", encoding='utf-8') as file:
             lines= file.readlines()
             target_date_str = lines[0].strip()
             if 1 in range(len(lines)):
@@ -72,8 +72,9 @@ def set_target_date():
         text_string = cal.get_date().strftime("%Y-%m-%d")+ " " + hour_input.get() + ":" + minutes_input.get() + ":00" 
         target_datetime = datetime.strptime(text_string, "%Y-%m-%d %H:%M:%S")
         text_string = text_string + "\n" + title_input.get()
+        print(title_input.get())
         if target_datetime > datetime.now():
-            with open(file_name, "w") as file:
+            with open(file_name, "w", encoding='utf-8') as file:
                 file.write(text_string)
             root.title(title_input.get())
             title_input.config(state=tk.DISABLED)
